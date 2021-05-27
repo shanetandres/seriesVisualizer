@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>math.js | pretty printing with MathJax</title>
+
+    <script src="https://unpkg.com/mathjs@9.4.0/lib/browser/math.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body,
+        html,
+        table td,
+        table th,
+        input[type=text] {
+            font-size: 11pt;
+            font-family: verdana, arial, sans-serif;
+        }
+
+        h1 {
+            font-size: 11pt;
+        }
+
+        input[type=text] {
+            padding: 5px;
+            width: 400px;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        table td,
+        table th {
+            padding: 5px;
+            border: 1px solid lightgray;
+        }
+
+        table th {
+            background-color: lightgray;
+        }
+
+        body {
+            margin: 0;
+            overflow: scroll;
+        }
+
+
+    </style>
+</head>
+<body>
+
+<h1>
+    Series Visualization
+</h1>
+
+<table>
+    <tr>
+        <th>Expression for</th>
+        <td><input type="text" id="expr"/></td>
+    </tr>
+    <tr>
+        <th>Taylor Series f(x)</th>
+    </tr>
+    <tr>
+        <th>Regular Sequence a(n)</th>
+        <td><input type="text" id="exprTwo"/></td>
+    </tr>
+    <tr>
+        <th>Center</th>
+        <td><input type="text" id="center"/></td>
+    </tr>
+    <tr>
+        <th>X - Value</th>
+        <td><input type="text" id="value"/></td>
+    </tr>
+    <tr>
+        <th>Pretty print</th>
+        <td><div id="pretty"></div></td>
+    </tr>
+    <tr>
+        <th>Actual Value (S∞)</th>
+        <td><div type="text" id="result"/></div></td>
+    </tr>
+</table>
+
+<div>
+    <canvas id="myChart"></canvas>
+</div>
+
+<div style = "height: 100px"></div>
+
+<script>
+    const expr = document.getElementById('expr')
+    const exprTwo = document.getElementById('exprTwo')
+    const pretty = document.getElementById('pretty')
+    const result = document.getElementById('result')
+    const center = document.getElementById('center')
+    const value = document.getElementById('value')
+    let parenthesis = 'keep'
+    let implicit = 'hide'
+    let currentSeries = 1;
+
+    const mj = function (tex) {
+        return MathJax.tex2svg(tex, {em: 16, ex: 6, display: false});
+    }
+
+    // initialize with an example expression
+    expr.value = ''
+    pretty.innerHTML = '';
+    pretty.appendChild(mj(math.parse(expr.value).toTex({parenthesis: parenthesis})));
+
+
+    expr.oninput = function() {
+        currentSeries = 1;
+        refresh();
+    };
+    exprTwo.oninput = function() {
+        currentSeries = 2;
+        refresh();
+    };
+    center.oninput = refresh;
+    value.oninput = refresh;
+
+
+    function refresh() {
+
+        let node = null
+
+        if(currentSeries == 1) {
+            try {
+                // parse the expression
+                node = math.parse(expr.value)
+
+                // evaluate the result of the expression
+                result.innerHTML = math.format(node.compile().evaluate({x: Number(value.value)}))
+            } catch (err) {
+                result.innerHTML = '<span style="color: red;">' + err.toString() + '</span>'
+            }
+
+            try {
+                // export the expression to LaTeX
+                const latex = node ? node.toTex({parenthesis: parenthesis, implicit: implicit}) : ''
+                console.log('LaTeX expression:', latex)
+
+                // display and re-render the expression
+                MathJax.typesetClear();
+                pretty.innerHTML = '';
+                pretty.appendChild(mj(latex));
+            } catch (err) {
+            }
+        }
+        else{
+            try {
+                // parse the expression
+                node = math.parse(exprTwo.value);
+                let actual = 0;
+                for(let i = 1; i < 100; i++){
+                    actual += node.compile().evaluate({n: i});
+                }
+                // evaluate the result of the expression
+                result.innerHTML = String(actual);
+            } catch (err) {
+                result.innerHTML = '<span style="color: red;">' + err.toString() + '</span>'
+            }
+
+            try {
+                // export the expression to LaTeX
+                const latex = node ? node.toTex({parenthesis: parenthesis, implicit: implicit}) : ''
+                console.log('LaTeX expression:', latex)
+
+                // display and re-render the expression
+                MathJax.typesetClear();
+                pretty.innerHTML = '';
+                pretty.appendChild(mj(latex));
+            } catch (err) {
+            }
+        }
+
+        try {
+            if(currentSeries == 1){
+                redraw();
+            }
+            else{
+                redrawTwo();
+            }
+        }
+        catch (err) {console.log(err)};
+
+    };
+
+    function redraw(){
+
+        /*
+        c.clearRect(0,0,xSize,ySize);
+        c.beginPath();
+        c.moveTo(0, ySize / 2);
+        c.lineTo(xSize, ySize / 2);
+        c.strokeStyle  = "grey";
+        c.lineWidth = 2;
+        c.stroke();
+        c.strokeStyle  = "black";
+        c.lineWidth = 2;
+        */
+        let results = [];
+        let partialSum = [];
+        let actualValue = [];
+        let numTerms = 20;
+        let origLabels = [];
+
+        for(let n = 0; n <= numTerms; n++){
+            origLabels.push(n.toString())
+            let fprimen = expr.value
+            for(let k = 0; k < n; k++){
+                let fprimenNew = math.derivative(math.parse(fprimen),"x");
+                fprimen = String(fprimenNew);
+            }
+            let fnc = math.evaluate(fprimen, {x:center.value});
+            let term = (fnc * Math.pow((value.value - center.value),n))/(math.factorial(n));
+            results.push(Number(term));
+        }
+
+
+        for(let n = 0; n < results.length; n++){
+            actualValue.push(null);
+            partialSum[n] = results[0];
+            for(let i = 1; i < n; i++){
+                partialSum[n] += results[i];
+            }
+        }
+        console.log(results);
+        actualValue[0] = result.textContent;
+        actualValue[results.length - 1] = result.textContent;
+        console.log(actualValue);
+
+        try {myChart.destroy()}
+        catch (err){console.log(err)}
+
+        const labels = origLabels;
+        const data = {
+            labels: labels,
+            datasets: [{
+                label: 'Taylor Series Partial Sums',
+                data: partialSum,
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            },
+            {
+                label: 'Actual Value',
+                data: actualValue,
+                fill: false,
+                borderColor: 'rgb(184, 55, 55)',
+                tension: 0.1
+            }
+            ]
+        };
+        const config = {
+            type: 'line',
+            data: data,
+            options: {
+                spanGaps: true,
+                scales: {
+                    y: {
+                        min: 0,
+                    },
+                    x: {
+                        title: {
+                            color: 'rgb(75, 192, 192)',
+                            display: true,
+                            text: 'S(n)',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        myChart = new Chart(
+            document.getElementById('myChart'),
+            config
+        );
+
+        /*
+        let yMax = Math.abs(results[0]);
+        let maxResult = results[0];
+        for(let i = 1; i < results.length; i++){
+            maxResult += results[i];
+            if(Math.abs(maxResult) > yMax)
+            {yMax = Math.abs(maxResult)}
+        };
+        yMax += yMax / 5;
+        //c.clearRect(0,0,xSize,ySize);
+        for(let n = 0; n < results.length - 1; n++){
+            c.moveTo(n * xStep, yScale * results[n]);
+            c.lineTo((n + 1) * xStep, yScale * results[n + 1]);
+            c.stroke();
+        }
+
+
+        let yScale = (ySize/2)/yMax;
+        let xStep = xSize / 11;
+        c.strokeStyle = "red";
+        let old = c.strokeStyle;
+        for(let n = 0; n < results.length; n++){
+            let result = results[0];
+            for(let i = 1; i <= n; i++){
+                result += results[i];
+            }
+            old = "#" + (parseInt(old.substring(1), 16) - 100).toString(16);
+            c.strokeStyle = old;
+            c.beginPath();
+            c.moveTo(n * xStep, -yScale * result + (ySize / 2));
+            c.lineTo((n + 1) * xStep, -yScale * (result + results[n+1]) + (ySize / 2));
+            c.stroke();
+            console.log(n + " , " + result)
+        }
+
+         */
+
+    }
+
+    function redrawTwo(){
+
+        /*
+        c.clearRect(0,0,xSize,ySize);
+        c.beginPath();
+        c.moveTo(0, ySize / 2);
+        c.lineTo(xSize, ySize / 2);
+        c.strokeStyle  = "grey";
+        c.lineWidth = 2;
+        c.stroke();
+        c.strokeStyle  = "black";
+        c.lineWidth = 2;
+        */
+        let results = [];
+        let partialSum = [];
+        let actualValue = [];
+        let numTerms = 20;
+        let origLabels = [];
+        let min = 0;
+
+        for(let n = 1; n <= numTerms + 1; n++){
+            origLabels.push(n.toString())
+            results.push(Number(math.evaluate(exprTwo.value, {n: n})));
+        }
+
+
+        for(let n = 0; n < results.length; n++){
+            actualValue.push(null);
+            partialSum[n] = results[0];
+            for(let i = 1; i <= n; i++){
+                partialSum[n] += results[i];
+            }
+            if (partialSum[n] < min){
+                min = partialSum[n];
+            }
+        }
+
+        if (Number(result.textContent) < min){
+            min = Number(result.textContent);
+        }
+
+        console.log(results);
+        actualValue[0] = result.textContent;
+        actualValue[results.length - 1] = result.textContent;
+        console.log(actualValue);
+
+        try {myChart.destroy()}
+        catch (err){console.log(err)}
+
+        const labels = origLabels;
+        const data = {
+            labels: labels,
+            datasets: [{
+                label: 'Regular Series  Partial Sums',
+                data: partialSum,
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            },
+                {
+                    label: 'Actual Value',
+                    data: actualValue,
+                    fill: false,
+                    borderColor: 'rgb(184, 55, 55)',
+                    tension: 0.1
+                }
+            ]
+        };
+        const config = {
+            type: 'line',
+            data: data,
+            options: {
+                spanGaps: true,
+                scales: {
+                    y: {
+                        min: min,
+                    },
+                    x: {
+                        title: {
+                            color: 'rgb(75, 192, 192)',
+                            display: true,
+                            text: 'S(n)',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        myChart = new Chart(
+            document.getElementById('myChart'),
+            config
+        );
+
+        /*
+        let yMax = Math.abs(results[0]);
+        let maxResult = results[0];
+        for(let i = 1; i < results.length; i++){
+            maxResult += results[i];
+            if(Math.abs(maxResult) > yMax)
+            {yMax = Math.abs(maxResult)}
+        };
+        yMax += yMax / 5;
+        //c.clearRect(0,0,xSize,ySize);
+        for(let n = 0; n < results.length - 1; n++){
+            c.moveTo(n * xStep, yScale * results[n]);
+            c.lineTo((n + 1) * xStep, yScale * results[n + 1]);
+            c.stroke();
+        }
+
+
+        let yScale = (ySize/2)/yMax;
+        let xStep = xSize / 11;
+        c.strokeStyle = "red";
+        let old = c.strokeStyle;
+        for(let n = 0; n < results.length; n++){
+            let result = results[0];
+            for(let i = 1; i <= n; i++){
+                result += results[i];
+            }
+            old = "#" + (parseInt(old.substring(1), 16) - 100).toString(16);
+            c.strokeStyle = old;
+            c.beginPath();
+            c.moveTo(n * xStep, -yScale * result + (ySize / 2));
+            c.lineTo((n + 1) * xStep, -yScale * (result + results[n+1]) + (ySize / 2));
+            c.stroke();
+            console.log(n + " , " + result)
+        }
+
+         */
+
+    }
+
+
+</script>
+
+</body>
+</html>
