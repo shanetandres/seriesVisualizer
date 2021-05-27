@@ -69,16 +69,16 @@
         <td><input type="text" id="exprTwo"/></td>
     </tr>
     <tr>
+        <th>Pretty print</th>
+        <td><div id="pretty"></div></td>
+    </tr>
+    <tr>
         <th>Center</th>
         <td><input type="text" id="center"/></td>
     </tr>
     <tr>
         <th>X - Value</th>
         <td><input type="text" id="value"/></td>
-    </tr>
-    <tr>
-        <th>Pretty print</th>
-        <td><div id="pretty"></div></td>
     </tr>
     <tr>
         <th>Actual Value (S∞)</th>
@@ -193,22 +193,12 @@
 
     function redraw(){
 
-        /*
-        c.clearRect(0,0,xSize,ySize);
-        c.beginPath();
-        c.moveTo(0, ySize / 2);
-        c.lineTo(xSize, ySize / 2);
-        c.strokeStyle  = "grey";
-        c.lineWidth = 2;
-        c.stroke();
-        c.strokeStyle  = "black";
-        c.lineWidth = 2;
-        */
         let results = [];
         let partialSum = [];
         let actualValue = [];
         let numTerms = 20;
         let origLabels = [];
+        let min = 0;
 
         for(let n = 0; n <= numTerms; n++){
             origLabels.push(n.toString())
@@ -226,10 +216,18 @@
         for(let n = 0; n < results.length; n++){
             actualValue.push(null);
             partialSum[n] = results[0];
-            for(let i = 1; i < n; i++){
+            for(let i = 1; i <= n; i++){
                 partialSum[n] += results[i];
             }
+            if (partialSum[n] < min){
+                min = partialSum[n];
+            }
         }
+
+        if (Number(result.textContent) < min){
+            min = Number(result.textContent);
+        }
+
         console.log(results);
         actualValue[0] = result.textContent;
         actualValue[results.length - 1] = result.textContent;
@@ -264,15 +262,23 @@
                 spanGaps: true,
                 scales: {
                     y: {
-                        min: 0,
+                        min: min,
+                        title: {
+                            color: 'rgb(184, 55, 55)',
+                            display: true,
+                            text: 'S(n)',
+                            font: {
+                                size: 20
+                            }
+                        }
                     },
                     x: {
                         title: {
                             color: 'rgb(75, 192, 192)',
                             display: true,
-                            text: 'S(n)',
+                            text: 'Term index (n)',
                             font: {
-                                size: 16
+                                size: 20
                             }
                         }
                     }
@@ -284,58 +290,10 @@
             config
         );
 
-        /*
-        let yMax = Math.abs(results[0]);
-        let maxResult = results[0];
-        for(let i = 1; i < results.length; i++){
-            maxResult += results[i];
-            if(Math.abs(maxResult) > yMax)
-            {yMax = Math.abs(maxResult)}
-        };
-        yMax += yMax / 5;
-        //c.clearRect(0,0,xSize,ySize);
-        for(let n = 0; n < results.length - 1; n++){
-            c.moveTo(n * xStep, yScale * results[n]);
-            c.lineTo((n + 1) * xStep, yScale * results[n + 1]);
-            c.stroke();
-        }
-
-
-        let yScale = (ySize/2)/yMax;
-        let xStep = xSize / 11;
-        c.strokeStyle = "red";
-        let old = c.strokeStyle;
-        for(let n = 0; n < results.length; n++){
-            let result = results[0];
-            for(let i = 1; i <= n; i++){
-                result += results[i];
-            }
-            old = "#" + (parseInt(old.substring(1), 16) - 100).toString(16);
-            c.strokeStyle = old;
-            c.beginPath();
-            c.moveTo(n * xStep, -yScale * result + (ySize / 2));
-            c.lineTo((n + 1) * xStep, -yScale * (result + results[n+1]) + (ySize / 2));
-            c.stroke();
-            console.log(n + " , " + result)
-        }
-
-         */
-
     }
 
     function redrawTwo(){
 
-        /*
-        c.clearRect(0,0,xSize,ySize);
-        c.beginPath();
-        c.moveTo(0, ySize / 2);
-        c.lineTo(xSize, ySize / 2);
-        c.strokeStyle  = "grey";
-        c.lineWidth = 2;
-        c.stroke();
-        c.strokeStyle  = "black";
-        c.lineWidth = 2;
-        */
         let results = [];
         let partialSum = [];
         let actualValue = [];
@@ -376,7 +334,7 @@
         const data = {
             labels: labels,
             datasets: [{
-                label: 'Regular Series  Partial Sums',
+                label: 'Regular Series Partial Sums',
                 data: partialSum,
                 fill: false,
                 borderColor: 'rgb(75, 192, 192)',
@@ -399,14 +357,22 @@
                 scales: {
                     y: {
                         min: min,
+                        title: {
+                            color: 'rgb(184, 55, 55)',
+                            display: true,
+                            text: 'S(n)',
+                            font: {
+                                size: 20
+                            }
+                        }
                     },
                     x: {
                         title: {
                             color: 'rgb(75, 192, 192)',
                             display: true,
-                            text: 'S(n)',
+                            text: 'Term index (n)',
                             font: {
-                                size: 16
+                                size: 20
                             }
                         }
                     }
@@ -417,43 +383,6 @@
             document.getElementById('myChart'),
             config
         );
-
-        /*
-        let yMax = Math.abs(results[0]);
-        let maxResult = results[0];
-        for(let i = 1; i < results.length; i++){
-            maxResult += results[i];
-            if(Math.abs(maxResult) > yMax)
-            {yMax = Math.abs(maxResult)}
-        };
-        yMax += yMax / 5;
-        //c.clearRect(0,0,xSize,ySize);
-        for(let n = 0; n < results.length - 1; n++){
-            c.moveTo(n * xStep, yScale * results[n]);
-            c.lineTo((n + 1) * xStep, yScale * results[n + 1]);
-            c.stroke();
-        }
-
-
-        let yScale = (ySize/2)/yMax;
-        let xStep = xSize / 11;
-        c.strokeStyle = "red";
-        let old = c.strokeStyle;
-        for(let n = 0; n < results.length; n++){
-            let result = results[0];
-            for(let i = 1; i <= n; i++){
-                result += results[i];
-            }
-            old = "#" + (parseInt(old.substring(1), 16) - 100).toString(16);
-            c.strokeStyle = old;
-            c.beginPath();
-            c.moveTo(n * xStep, -yScale * result + (ySize / 2));
-            c.lineTo((n + 1) * xStep, -yScale * (result + results[n+1]) + (ySize / 2));
-            c.stroke();
-            console.log(n + " , " + result)
-        }
-
-         */
 
     }
 
